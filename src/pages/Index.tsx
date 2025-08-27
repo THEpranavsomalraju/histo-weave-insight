@@ -5,7 +5,7 @@ import { FileUploadArea } from "@/components/FileUploadArea";
 import { AnalysisProgress } from "@/components/AnalysisProgress";
 import { AnalysisLog } from "@/components/AnalysisLog";
 import { PredictionCard } from "@/components/PredictionCard";
-import { Microscope } from "lucide-react";
+import { Microscope, Sparkles } from "lucide-react";
 
 const STEPS = [
   { id: 0, label: "Load WSI" },
@@ -28,63 +28,98 @@ interface PredictionData {
   category: string;
 }
 
+interface LogMessage {
+  text: string;
+  timestamp: Date;
+  type?: "info" | "processing" | "success" | "error";
+}
+
 const Index = () => {
   const [currentStep, setCurrentStep] = useState(-1);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [logMessages, setLogMessages] = useState<string[]>(["Waiting for input..."]);
+  const [logMessages, setLogMessages] = useState<LogMessage[]>([
+    { text: "System initialized. Waiting for input...", timestamp: new Date(), type: "info" }
+  ]);
   const [progress, setProgress] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
   const [predictions, setPredictions] = useState<PredictionData[]>([]);
   const [showPredictions, setShowPredictions] = useState(false);
   const [showFilterButton, setShowFilterButton] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const addLogMessage = useCallback((message: string) => {
-    setLogMessages(prev => [...prev, message]);
+  const addLogMessage = useCallback((message: string, type: LogMessage["type"] = "info") => {
+    setLogMessages(prev => [...prev, { text: message, timestamp: new Date(), type }]);
   }, []);
 
   const handleFileSelect = useCallback((files: FileList) => {
     const fileArray = Array.from(files);
     setUploadedFiles(fileArray);
     setCurrentStep(0);
-    addLogMessage(`Step 1: Loaded ${fileArray.length} Whole Slide Images.`);
+    addLogMessage(`Successfully loaded ${fileArray.length} Whole Slide Images`, "success");
+    addLogMessage("Files validated and ready for processing", "info");
     setShowFilterButton(true);
   }, [addLogMessage]);
 
   const startAnalysis = useCallback(() => {
     setCurrentStep(1);
-    addLogMessage("Step 2: Filtering irrelevant areas and tiling into regions...");
+    setIsProcessing(true);
+    addLogMessage("Initializing tissue analysis pipeline...", "processing");
     setShowFilterButton(false);
     setShowProgress(true);
     setProgress(0);
 
-    // Simulate progress
-    let currentProgress = 0;
+    // Simulate detailed analysis process
+    const analysisSteps = [
+      { progress: 15, message: "Scanning image metadata and headers...", type: "processing" as const },
+      { progress: 30, message: "Applying tissue detection filters...", type: "processing" as const },
+      { progress: 45, message: "Identifying regions of interest...", type: "processing" as const },
+      { progress: 60, message: "Segmenting cardiac tissue structures...", type: "processing" as const },
+      { progress: 75, message: "Loading deep learning model weights...", type: "processing" as const },
+      { progress: 85, message: "Running inference on tissue regions...", type: "processing" as const },
+      { progress: 95, message: "Calculating prediction confidences...", type: "processing" as const },
+      { progress: 100, message: "Analysis complete!", type: "success" as const }
+    ];
+
+    let stepIndex = 0;
     const interval = setInterval(() => {
-      currentProgress += 10;
-      setProgress(currentProgress);
-      
-      if (currentProgress >= 100) {
-        clearInterval(interval);
-        setCurrentStep(2);
-        addLogMessage("Step 3: Running segmentation model...");
+      if (stepIndex < analysisSteps.length) {
+        const step = analysisSteps[stepIndex];
+        setProgress(step.progress);
+        addLogMessage(step.message, step.type);
         
-        setTimeout(() => {
-          setCurrentStep(3);
-          addLogMessage("Step 4: Predictions ready.");
-          setShowPredictions(true);
+        if (step.progress === 60) {
+          setCurrentStep(2);
+        }
+        
+        stepIndex++;
+      } else {
+        clearInterval(interval);
+        setCurrentStep(3);
+        setIsProcessing(false);
+        addLogMessage("Generating tissue classification results...", "success");
+        setShowPredictions(true);
+        
+        // Generate predictions - distribute each image to multiple categories
+        const newPredictions: PredictionData[] = [];
+        uploadedFiles.forEach((file) => {
+          // Each image appears in 2-3 random categories with different confidences
+          const numCategories = Math.floor(Math.random() * 2) + 2; // 2-3 categories
+          const shuffledCategories = [...CATEGORIES].sort(() => Math.random() - 0.5);
           
-          // Generate predictions
-          const newPredictions: PredictionData[] = uploadedFiles.map((file, index) => ({
-            imageUrl: URL.createObjectURL(file),
-            fileName: file.name,
-            confidence: Math.random(),
-            category: CATEGORIES[index % 4].id
-          }));
-          
-          setPredictions(newPredictions);
-        }, 2000);
+          for (let i = 0; i < numCategories; i++) {
+            newPredictions.push({
+              imageUrl: URL.createObjectURL(file),
+              fileName: `${file.name} - Region ${i + 1}`,
+              confidence: 0.6 + Math.random() * 0.4, // Higher confidence range
+              category: shuffledCategories[i].id
+            });
+          }
+        });
+        
+        setPredictions(newPredictions);
+        addLogMessage(`Generated ${newPredictions.length} tissue predictions across ${CATEGORIES.length} categories`, "success");
       }
-    }, 500);
+    }, 800);
   }, [uploadedFiles, addLogMessage]);
 
   const getPredictionsByCategory = (categoryId: string) => {
@@ -95,18 +130,28 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <header className="text-center mb-12">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <div className="p-3 rounded-full bg-gradient-hematoxylin">
-              <Microscope className="w-8 h-8 text-primary-foreground" />
+        <header className="text-center mb-16">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-hematoxylin opacity-10 blur-3xl rounded-full" />
+            <div className="relative inline-flex items-center gap-4 mb-6 p-6 bg-card/50 backdrop-blur-sm rounded-2xl shadow-clinical border">
+              <div className="relative">
+                <div className="p-4 rounded-full bg-gradient-hematoxylin shadow-clinical">
+                  <Microscope className="w-10 h-10 text-primary-foreground" />
+                </div>
+                <div className="absolute -top-1 -right-1 p-1 rounded-full bg-gradient-eosin">
+                  <Sparkles className="w-4 h-4 text-secondary-foreground" />
+                </div>
+              </div>
+              <div className="text-left">
+                <h1 className="text-4xl font-bold bg-gradient-hematoxylin bg-clip-text text-transparent mb-2">
+                  AI Cardiac Pathology Suite
+                </h1>
+                <p className="text-muted-foreground text-lg">
+                  Advanced tissue segmentation & rejection prediction for transplant assessment
+                </p>
+              </div>
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-hematoxylin bg-clip-text text-transparent">
-              Heart Tissue Segmentation & Prediction
-            </h1>
           </div>
-          <p className="text-muted-foreground text-lg">
-            AI-powered analysis for cardiac transplant pathology assessment
-          </p>
         </header>
 
         {/* Stepper */}
@@ -121,7 +166,7 @@ const Index = () => {
 
         {/* Analysis Log */}
         <div className="flex justify-center mb-6">
-          <AnalysisLog messages={logMessages} />
+          <AnalysisLog messages={logMessages} isProcessing={isProcessing} />
         </div>
 
         {/* Progress */}
@@ -136,38 +181,56 @@ const Index = () => {
               onClick={startAnalysis}
               variant="analysis"
               size="lg"
-              className="px-8 py-4 text-lg font-semibold"
+              className="px-10 py-6 text-lg font-semibold rounded-xl shadow-clinical hover:shadow-lg transform hover:scale-105 transition-all duration-300"
             >
-              Filter & Run Model
+              <Microscope className="w-5 h-5 mr-2" />
+              Start AI Analysis
             </Button>
           </div>
         )}
 
         {/* Predictions */}
         {showPredictions && (
-          <div className="mt-12 space-y-12">
+          <div className="mt-16 space-y-16">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold bg-gradient-clinical bg-clip-text text-transparent mb-4">
+                Tissue Classification Results
+              </h2>
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                AI-powered analysis has identified and classified cardiac tissue regions across multiple pathological categories
+              </p>
+            </div>
+            
             {CATEGORIES.map((category) => {
               const categoryPredictions = getPredictionsByCategory(category.id);
               
               if (categoryPredictions.length === 0) return null;
               
               return (
-                <div key={category.id}>
-                  <div className="mb-6">
-                    <h3 className="text-2xl font-bold text-primary mb-2">
-                      {category.title}
-                    </h3>
-                    <p className="text-muted-foreground">
+                <div key={category.id} className="animate-in slide-in-from-bottom-4 duration-700">
+                  <div className="mb-8 p-6 bg-gradient-to-r from-card to-card/50 rounded-xl border shadow-card">
+                    <div className="flex items-center gap-4 mb-2">
+                      <div className="w-3 h-3 rounded-full bg-gradient-hematoxylin" />
+                      <h3 className="text-2xl font-bold text-primary">
+                        {category.title}
+                      </h3>
+                      <span className="ml-auto bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
+                        {categoryPredictions.length} regions detected
+                      </span>
+                    </div>
+                    <p className="text-muted-foreground text-lg ml-7">
                       {category.description}
                     </p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                     {categoryPredictions.map((prediction, index) => (
                       <PredictionCard
                         key={`${prediction.category}-${index}`}
                         imageUrl={prediction.imageUrl}
                         fileName={prediction.fileName}
                         confidence={prediction.confidence}
+                        className="animate-in slide-in-from-bottom-2 duration-500"
+                        style={{ animationDelay: `${index * 100}ms` }}
                       />
                     ))}
                   </div>
