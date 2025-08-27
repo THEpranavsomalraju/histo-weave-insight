@@ -63,6 +63,15 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				}
 			},
+			backgroundImage: {
+				'gradient-hematoxylin': 'var(--gradient-hematoxylin)',
+				'gradient-eosin': 'var(--gradient-eosin)',
+				'gradient-clinical': 'var(--gradient-clinical)'
+			},
+			boxShadow: {
+				'clinical': 'var(--shadow-clinical)',
+				'card': 'var(--shadow-card)'
+			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
