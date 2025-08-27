@@ -6,6 +6,7 @@ import { AnalysisProgress } from "@/components/AnalysisProgress";
 import { AnalysisLog } from "@/components/AnalysisLog";
 import { PredictionCard } from "@/components/PredictionCard";
 import { Microscope, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const STEPS = [
   { id: 0, label: "Load WSI" },
@@ -99,25 +100,30 @@ const Index = () => {
         addLogMessage("Generating tissue classification results...", "success");
         setShowPredictions(true);
         
-        // Generate predictions - distribute each image to multiple categories
+        // Generate predictions - create 0-8 images per category
         const newPredictions: PredictionData[] = [];
-        uploadedFiles.forEach((file) => {
-          // Each image appears in 2-3 random categories with different confidences
-          const numCategories = Math.floor(Math.random() * 2) + 2; // 2-3 categories
-          const shuffledCategories = [...CATEGORIES].sort(() => Math.random() - 0.5);
+        
+        CATEGORIES.forEach((category) => {
+          // Random number of images per category (0-8)
+          const numImagesForCategory = Math.floor(Math.random() * 9); // 0-8
           
-          for (let i = 0; i < numCategories; i++) {
+          for (let i = 0; i < numImagesForCategory; i++) {
+            // Use a random uploaded file
+            const randomFileIndex = Math.floor(Math.random() * uploadedFiles.length);
+            const file = uploadedFiles[randomFileIndex];
+            
             newPredictions.push({
               imageUrl: URL.createObjectURL(file),
-              fileName: `${file.name} - Region ${i + 1}`,
-              confidence: 0.6 + Math.random() * 0.4, // Higher confidence range
-              category: shuffledCategories[i].id
+              fileName: `${file.name} - ${category.title} Region ${i + 1}`,
+              confidence: 0.55 + Math.random() * 0.4, // 55-95% confidence
+              category: category.id
             });
           }
         });
         
         setPredictions(newPredictions);
-        addLogMessage(`Generated ${newPredictions.length} tissue predictions across ${CATEGORIES.length} categories`, "success");
+        addLogMessage(`Generated ${newPredictions.length} tissue predictions across ${CATEGORIES.length} pathological categories`, "success");
+        addLogMessage("Analysis pipeline completed successfully", "info");
       }
     }, 800);
   }, [uploadedFiles, addLogMessage]);
@@ -204,8 +210,6 @@ const Index = () => {
             {CATEGORIES.map((category) => {
               const categoryPredictions = getPredictionsByCategory(category.id);
               
-              if (categoryPredictions.length === 0) return null;
-              
               return (
                 <div key={category.id} className="animate-in slide-in-from-bottom-4 duration-700">
                   <div className="mb-8 p-6 bg-gradient-to-r from-card to-card/50 rounded-xl border shadow-card">
@@ -214,26 +218,46 @@ const Index = () => {
                       <h3 className="text-2xl font-bold text-primary">
                         {category.title}
                       </h3>
-                      <span className="ml-auto bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
-                        {categoryPredictions.length} regions detected
+                      <span className={cn(
+                        "ml-auto px-3 py-1 rounded-full text-sm font-medium",
+                        categoryPredictions.length > 0 
+                          ? "bg-primary/10 text-primary" 
+                          : "bg-muted/50 text-muted-foreground"
+                      )}>
+                        {categoryPredictions.length > 0 
+                          ? `${categoryPredictions.length} regions detected`
+                          : "No regions detected"
+                        }
                       </span>
                     </div>
                     <p className="text-muted-foreground text-lg ml-7">
                       {category.description}
                     </p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                    {categoryPredictions.map((prediction, index) => (
-                      <PredictionCard
-                        key={`${prediction.category}-${index}`}
-                        imageUrl={prediction.imageUrl}
-                        fileName={prediction.fileName}
-                        confidence={prediction.confidence}
-                        className="animate-in slide-in-from-bottom-2 duration-500"
-                        style={{ animationDelay: `${index * 100}ms` }}
-                      />
-                    ))}
-                  </div>
+                  
+                  {categoryPredictions.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                      {categoryPredictions.map((prediction, index) => (
+                        <PredictionCard
+                          key={`${prediction.category}-${index}`}
+                          imageUrl={prediction.imageUrl}
+                          fileName={prediction.fileName}
+                          confidence={prediction.confidence}
+                          className="animate-in scale-in duration-500 hover-scale"
+                          style={{ animationDelay: `${index * 100}ms` }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 px-6 bg-muted/30 rounded-xl border-2 border-dashed border-muted">
+                      <div className="text-muted-foreground text-lg">
+                        No tissue regions classified in this category
+                      </div>
+                      <div className="text-muted-foreground/70 text-sm mt-2">
+                        The AI model did not detect any {category.title.toLowerCase()} patterns in the analyzed tissue samples
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

@@ -17,10 +17,18 @@ interface AnalysisLogProps {
 
 export const AnalysisLog = ({ messages, isProcessing = false, className }: AnalysisLogProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTo({
+          top: scrollContainer.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
     }
   }, [messages]);
 
@@ -33,7 +41,7 @@ export const AnalysisLog = ({ messages, isProcessing = false, className }: Analy
       case "processing":
         return <Loader2 className="w-3 h-3 animate-spin text-secondary" />;
       case "success":
-        return <div className="w-3 h-3 rounded-full bg-accent" />;
+        return <div className="w-3 h-3 rounded-full bg-accent animate-pulse" />;
       case "error":
         return <div className="w-3 h-3 rounded-full bg-destructive" />;
       default:
@@ -70,25 +78,28 @@ export const AnalysisLog = ({ messages, isProcessing = false, className }: Analy
         )}
       </div>
       <div className="p-4">
-        <ScrollArea className="h-40" ref={scrollRef}>
-          <div className="space-y-3">
+        <ScrollArea className="h-48" ref={scrollAreaRef}>
+          <div className="space-y-3 pr-2">
             {messages.map((message, index) => (
               <div 
                 key={index} 
-                className="flex items-start gap-3 animate-in slide-in-from-bottom-2 duration-300"
-                style={{ animationDelay: `${index * 50}ms` }}
+                className="flex items-start gap-3 animate-in slide-in-from-bottom-2 duration-500"
+                style={{ animationDelay: `${index * 100}ms` }}
               >
                 {getMessageIcon(message.type || "info")}
                 <div className="flex-1 min-w-0">
-                  <div className={cn("text-sm", getMessageStyle(message.type || "info"))}>
+                  <div className={cn("text-sm leading-relaxed", getMessageStyle(message.type || "info"))}>
                     {message.text}
                   </div>
-                  <div className="text-xs text-muted-foreground/70 mt-1">
+                  <div className="text-xs text-muted-foreground/60 mt-1 font-mono">
                     {formatTime(message.timestamp)}
                   </div>
                 </div>
               </div>
             ))}
+            
+            {/* Auto-scroll trigger element */}
+            <div ref={scrollRef} className="h-1" />
           </div>
         </ScrollArea>
       </div>
