@@ -158,26 +158,19 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <header className="text-center mb-16">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-hematoxylin opacity-10 blur-3xl rounded-full" />
-            <div className="relative inline-flex items-center gap-4 mb-6 p-6 bg-card/50 backdrop-blur-sm rounded-2xl shadow-clinical border">
-              <div className="relative">
-                <div className="p-4 rounded-full bg-gradient-hematoxylin shadow-clinical">
-                  <Microscope className="w-10 h-10 text-primary-foreground" />
-                </div>
-                <div className="absolute -top-1 -right-1 p-1 rounded-full bg-gradient-eosin">
-                  <Sparkles className="w-4 h-4 text-secondary-foreground" />
-                </div>
-              </div>
-              <div className="text-left">
-                <h1 className="text-4xl font-bold bg-gradient-hematoxylin bg-clip-text text-transparent mb-2">
-                  AI Cardiac Pathology Suite
-                </h1>
-                <p className="text-muted-foreground text-lg">
-                  Advanced tissue segmentation & rejection prediction for transplant assessment
-                </p>
-              </div>
+        <header className="mb-8 pb-6 border-b border-border">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-foreground mb-1">
+                AI Cardiac Pathology Analysis
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Automated tissue segmentation and rejection classification system
+              </p>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-md border">
+              <Microscope className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">v2.1.4</span>
             </div>
           </div>
         </header>
