@@ -20,7 +20,7 @@ const CATEGORIES = [
   { id: "1r1a", title: "1R1A", description: "Grade 1A rejection" },
   { id: "1r2", title: "1R2", description: "Grade 2 rejection" },
   { id: "healing", title: "Healing", description: "Healing tissue" },
-  { id: "normal", title: "Normal", description: "Normal tissue" }
+  { id: "quilty", title: "Quilty", description: "Quilty effect patterns" }
 ];
 
 interface PredictionData {
