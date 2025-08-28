@@ -5,8 +5,9 @@ import { FileUploadArea } from "@/components/FileUploadArea";
 import { AnalysisProgress } from "@/components/AnalysisProgress";
 import { AnalysisLog } from "@/components/AnalysisLog";
 import { PredictionCard } from "@/components/PredictionCard";
-import { Microscope, Sparkles } from "lucide-react";
+import { Microscope, Sparkles, X, ZoomIn, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const STEPS = [
   { id: 0, label: "Load WSI" },
@@ -47,9 +48,30 @@ const Index = () => {
   const [showPredictions, setShowPredictions] = useState(false);
   const [showFilterButton, setShowFilterButton] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedPrediction, setSelectedPrediction] = useState<PredictionData | null>(null);
 
   const addLogMessage = useCallback((message: string, type: LogMessage["type"] = "info") => {
     setLogMessages(prev => [...prev, { text: message, timestamp: new Date(), type }]);
+  }, []);
+
+  const handleRestart = useCallback(() => {
+    setCurrentStep(-1);
+    setUploadedFiles([]);
+    setLogMessages([{ text: "System initialized. Waiting for input...", timestamp: new Date(), type: "info" }]);
+    setProgress(0);
+    setShowProgress(false);
+    setPredictions([]);
+    setShowPredictions(false);
+    setShowFilterButton(false);
+    setIsProcessing(false);
+    setSelectedPrediction(null);
+    // Clear file input
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput) fileInput.value = '';
+  }, []);
+
+  const handlePredictionClick = useCallback((prediction: PredictionData) => {
+    setSelectedPrediction(prediction);
   }, []);
 
   const handleFileSelect = useCallback((files: FileList) => {
@@ -180,9 +202,9 @@ const Index = () => {
           <AnalysisProgress progress={progress} isVisible={showProgress} />
         </div>
 
-        {/* Filter Button */}
-        {showFilterButton && (
-          <div className="flex justify-center mb-8">
+        {/* Action Buttons */}
+        <div className="flex justify-center gap-4 mb-8">
+          {showFilterButton && (
             <Button 
               onClick={startAnalysis}
               variant="analysis"
@@ -192,8 +214,19 @@ const Index = () => {
               <Microscope className="w-5 h-5 mr-2" />
               Start AI Analysis
             </Button>
-          </div>
-        )}
+          )}
+          
+          {(currentStep >= 0 || showPredictions) && (
+            <Button 
+              onClick={handleRestart}
+              variant="outline"
+              size="lg"
+              className="px-10 py-6 text-lg font-semibold rounded-xl border-2 hover:bg-muted/50 transition-all duration-300"
+            >
+              Restart Analysis
+            </Button>
+          )}
+        </div>
 
         {/* Predictions */}
         {showPredictions && (
@@ -243,8 +276,9 @@ const Index = () => {
                           imageUrl={prediction.imageUrl}
                           fileName={prediction.fileName}
                           confidence={prediction.confidence}
-                          className="animate-in scale-in duration-500 hover-scale"
+                          className="animate-in scale-in duration-500 hover-scale cursor-pointer"
                           style={{ animationDelay: `${index * 100}ms` }}
+                          onClick={() => handlePredictionClick(prediction)}
                         />
                       ))}
                     </div>
@@ -263,6 +297,96 @@ const Index = () => {
             })}
           </div>
         )}
+
+        {/* Prediction Detail Modal */}
+        <Dialog open={!!selectedPrediction} onOpenChange={() => setSelectedPrediction(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+            {selectedPrediction && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-3 text-xl">
+                    <Activity className="w-6 h-6 text-primary" />
+                    Tissue Analysis Details
+                  </DialogTitle>
+                </DialogHeader>
+                
+                <div className="grid md:grid-cols-2 gap-6 mt-4">
+                  {/* Image Section */}
+                  <div className="relative group">
+                    <div className="aspect-square rounded-xl overflow-hidden bg-muted border-2 border-border shadow-clinical">
+                      <img 
+                        src={selectedPrediction.imageUrl} 
+                        alt={selectedPrediction.fileName}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
+                        <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Details Section */}
+                  <div className="space-y-6">
+                    <div className="p-4 bg-gradient-to-r from-card to-card/50 rounded-xl border">
+                      <h3 className="font-semibold text-lg mb-2 text-primary">Tissue Classification</h3>
+                      <p className="text-muted-foreground mb-3">{selectedPrediction.fileName}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Category:</span>
+                        <span className={cn(
+                          "px-3 py-1 rounded-full text-sm font-medium",
+                          "bg-gradient-hematoxylin text-primary-foreground"
+                        )}>
+                          {CATEGORIES.find(cat => cat.id === selectedPrediction.category)?.title}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 bg-gradient-to-r from-card to-card/50 rounded-xl border">
+                      <h3 className="font-semibold text-lg mb-3 text-primary">Confidence Analysis</h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">AI Confidence</span>
+                          <span className={cn(
+                            "px-2 py-1 rounded text-sm font-semibold",
+                            selectedPrediction.confidence >= 0.8 ? "text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30" :
+                            selectedPrediction.confidence >= 0.6 ? "text-amber-600 bg-amber-100 dark:bg-amber-900/30" :
+                            "text-red-600 bg-red-100 dark:bg-red-900/30"
+                          )}>
+                            {(selectedPrediction.confidence * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                          <div 
+                            className={cn(
+                              "h-2 rounded-full transition-all duration-500",
+                              selectedPrediction.confidence >= 0.8 ? "bg-emerald-500" :
+                              selectedPrediction.confidence >= 0.6 ? "bg-amber-500" :
+                              "bg-red-500"
+                            )}
+                            style={{ width: `${selectedPrediction.confidence * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="p-4 bg-gradient-to-r from-card to-card/50 rounded-xl border">
+                      <h3 className="font-semibold text-lg mb-2 text-primary">Clinical Notes</h3>
+                      <p className="text-muted-foreground text-sm leading-relaxed">
+                        {CATEGORIES.find(cat => cat.id === selectedPrediction.category)?.description}
+                        {selectedPrediction.confidence >= 0.8 
+                          ? " High confidence prediction suggests clear pathological features."
+                          : selectedPrediction.confidence >= 0.6
+                          ? " Moderate confidence - recommend additional review."
+                          : " Low confidence - manual verification strongly recommended."
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

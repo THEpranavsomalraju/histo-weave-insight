@@ -6,9 +6,10 @@ interface PredictionCardProps {
   confidence: number;
   className?: string;
   style?: React.CSSProperties;
+  onClick?: () => void;
 }
 
-export const PredictionCard = ({ imageUrl, fileName, confidence, className, style }: PredictionCardProps) => {
+export const PredictionCard = ({ imageUrl, fileName, confidence, className, style, onClick }: PredictionCardProps) => {
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 0.8) return "text-accent";
     if (confidence >= 0.6) return "text-secondary";
@@ -26,9 +27,11 @@ export const PredictionCard = ({ imageUrl, fileName, confidence, className, styl
       className={cn(
         "rounded-xl overflow-hidden bg-card shadow-card hover:shadow-clinical transition-all duration-300",
         "border border-border/50 hover:border-primary/30",
+        onClick && "cursor-pointer hover:ring-2 hover:ring-primary/50 hover:scale-105",
         className
       )}
       style={style}
+      onClick={onClick}
     >
       <div className="aspect-video bg-muted flex items-center justify-center overflow-hidden relative group">
         <img 
