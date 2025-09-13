@@ -8,6 +8,7 @@ import { PredictionCard } from "@/components/PredictionCard";
 import { Microscope, Upload, FileText, ZoomIn, Activity, Grid3X3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const STEPS = [
   { id: 0, label: "Load WSI" },
@@ -340,58 +341,92 @@ const Index = () => {
               </DialogTitle>
             </DialogHeader>
             
-            <div className="mt-4 overflow-y-auto max-h-[70vh] space-y-8">
-              {CATEGORIES.map((category) => {
-                const categoryPredictions = getPredictionsByCategory(category.id);
-                
-                return (
-                  <div key={category.id}>
-                    <div className="mb-4 p-4 bg-gradient-to-r from-card to-card/50 rounded-xl border">
-                      <div className="flex items-center gap-4 mb-2">
-                        <div className="w-3 h-3 rounded-full bg-gradient-hematoxylin" />
-                        <h3 className="text-xl font-bold text-primary">
-                          {category.title}
-                        </h3>
+            <div className="mt-4">
+              <Tabs defaultValue={CATEGORIES[0].id} className="w-full">
+                <TabsList className="grid w-full grid-cols-4 mb-6">
+                  {CATEGORIES.map((category) => {
+                    const categoryPredictions = getPredictionsByCategory(category.id);
+                    return (
+                      <TabsTrigger 
+                        key={category.id} 
+                        value={category.id}
+                        className="flex flex-col items-center gap-1 py-3 px-2"
+                      >
+                        <span className="font-medium">{category.title}</span>
                         <span className={cn(
-                          "ml-auto px-3 py-1 rounded-full text-sm font-medium",
+                          "text-xs px-2 py-0.5 rounded-full",
                           categoryPredictions.length > 0 
-                            ? "bg-primary/10 text-primary" 
-                            : "bg-muted/50 text-muted-foreground"
+                            ? "bg-primary/20 text-primary" 
+                            : "bg-muted text-muted-foreground"
                         )}>
-                          {categoryPredictions.length > 0 
-                            ? `${categoryPredictions.length} regions detected`
-                            : "No regions detected"
-                          }
+                          {categoryPredictions.length}
                         </span>
-                      </div>
-                      <p className="text-muted-foreground ml-7">
-                        {category.description}
-                      </p>
-                    </div>
-                    
-                    {categoryPredictions.length > 0 ? (
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                        {categoryPredictions.map((prediction, index) => (
-                          <PredictionCard
-                            key={`${prediction.category}-${index}`}
-                            imageUrl={prediction.imageUrl}
-                            fileName={prediction.fileName}
-                            confidence={prediction.confidence}
-                            className="cursor-pointer hover-scale"
-                            onClick={() => handlePredictionClick(prediction)}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8 px-6 bg-muted/30 rounded-xl border-2 border-dashed border-muted">
-                        <div className="text-muted-foreground">
-                          No tissue regions classified in this category
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
+                
+                {CATEGORIES.map((category) => {
+                  const categoryPredictions = getPredictionsByCategory(category.id);
+                  
+                  return (
+                    <TabsContent 
+                      key={category.id} 
+                      value={category.id}
+                      className="overflow-y-auto max-h-[60vh] space-y-4"
+                    >
+                      {/* Category Header */}
+                      <div className="p-4 bg-gradient-to-r from-card to-card/50 rounded-xl border">
+                        <div className="flex items-center gap-4 mb-2">
+                          <div className="w-3 h-3 rounded-full bg-gradient-hematoxylin" />
+                          <h3 className="text-xl font-bold text-primary">
+                            {category.title}
+                          </h3>
+                          <span className={cn(
+                            "ml-auto px-3 py-1 rounded-full text-sm font-medium",
+                            categoryPredictions.length > 0 
+                              ? "bg-primary/10 text-primary" 
+                              : "bg-muted/50 text-muted-foreground"
+                          )}>
+                            {categoryPredictions.length > 0 
+                              ? `${categoryPredictions.length} regions detected`
+                              : "No regions detected"
+                            }
+                          </span>
                         </div>
+                        <p className="text-muted-foreground ml-7">
+                          {category.description}
+                        </p>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                      
+                      {/* Predictions Grid */}
+                      {categoryPredictions.length > 0 ? (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                          {categoryPredictions.map((prediction, index) => (
+                            <PredictionCard
+                              key={`${prediction.category}-${index}`}
+                              imageUrl={prediction.imageUrl}
+                              fileName={prediction.fileName}
+                              confidence={prediction.confidence}
+                              className="cursor-pointer hover-scale"
+                              onClick={() => handlePredictionClick(prediction)}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-12 px-6 bg-muted/30 rounded-xl border-2 border-dashed border-muted">
+                          <div className="text-muted-foreground text-lg">
+                            No tissue regions classified in this category
+                          </div>
+                          <div className="text-muted-foreground/70 text-sm mt-2">
+                            The AI model did not detect any {category.title.toLowerCase()} patterns in the analyzed tissue samples
+                          </div>
+                        </div>
+                      )}
+                    </TabsContent>
+                  );
+                })}
+              </Tabs>
             </div>
           </DialogContent>
         </Dialog>
