@@ -5,7 +5,7 @@ import { FileUploadArea } from "@/components/FileUploadArea";
 import { AnalysisProgress } from "@/components/AnalysisProgress";
 import { AnalysisLog } from "@/components/AnalysisLog";
 import { PredictionCard } from "@/components/PredictionCard";
-import { Microscope, Sparkles, X, ZoomIn, Activity } from "lucide-react";
+import { Microscope, Upload, FileText, ZoomIn, Activity, Grid3X3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -49,6 +49,9 @@ const Index = () => {
   const [showFilterButton, setShowFilterButton] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedPrediction, setSelectedPrediction] = useState<PredictionData | null>(null);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [showResultsDialog, setShowResultsDialog] = useState(false);
+  const [showLogDialog, setShowLogDialog] = useState(false);
 
   const addLogMessage = useCallback((message: string, type: LogMessage["type"] = "info") => {
     setLogMessages(prev => [...prev, { text: message, timestamp: new Date(), type }]);
@@ -65,6 +68,9 @@ const Index = () => {
     setShowFilterButton(false);
     setIsProcessing(false);
     setSelectedPrediction(null);
+    setShowUploadDialog(false);
+    setShowResultsDialog(false);
+    setShowLogDialog(false);
     // Clear file input
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     if (fileInput) fileInput.value = '';
@@ -81,6 +87,7 @@ const Index = () => {
     addLogMessage(`Successfully loaded ${fileArray.length} Whole Slide Images`, "success");
     addLogMessage("Files validated and ready for processing", "info");
     setShowFilterButton(true);
+    setShowUploadDialog(false);
   }, [addLogMessage]);
 
   const startAnalysis = useCallback(() => {
@@ -121,6 +128,7 @@ const Index = () => {
         setIsProcessing(false);
         addLogMessage("Generating tissue classification results...", "success");
         setShowPredictions(true);
+        setShowResultsDialog(true);
         
         // Generate predictions - create 0-8 images per category
         const newPredictions: PredictionData[] = [];
@@ -175,121 +183,233 @@ const Index = () => {
           </div>
         </header>
 
-        {/* Stepper */}
-        <div className="flex justify-center mb-8">
-          <AnalysisStepper currentStep={currentStep} steps={STEPS} />
-        </div>
-
-        {/* Upload Area */}
-        <div className="flex justify-center mb-8">
-          <FileUploadArea onFileSelect={handleFileSelect} />
-        </div>
-
-        {/* Analysis Log */}
-        <div className="flex justify-center mb-6">
-          <AnalysisLog messages={logMessages} isProcessing={isProcessing} />
-        </div>
-
-        {/* Progress */}
-        <div className="flex justify-center mb-8">
-          <AnalysisProgress progress={progress} isVisible={showProgress} />
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex justify-center gap-4 mb-8">
-          {showFilterButton && (
-            <Button 
-              onClick={startAnalysis}
-              variant="analysis"
-              size="lg"
-              className="px-10 py-6 text-lg font-semibold rounded-xl shadow-clinical hover:shadow-lg transform hover:scale-105 transition-all duration-300"
-            >
-              <Microscope className="w-5 h-5 mr-2" />
-              Start AI Analysis
-            </Button>
-          )}
-          
-          {(currentStep >= 0 || showPredictions) && (
-            <Button 
-              onClick={handleRestart}
-              variant="outline"
-              size="lg"
-              className="px-10 py-6 text-lg font-semibold rounded-xl border-2 hover:bg-muted/50 transition-all duration-300"
-            >
-              Restart Analysis
-            </Button>
-          )}
-        </div>
-
-        {/* Predictions */}
-        {showPredictions && (
-          <div className="mt-16 space-y-16">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold bg-gradient-clinical bg-clip-text text-transparent mb-4">
-                Tissue Classification Results
-              </h2>
-              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                AI-powered analysis has identified and classified cardiac tissue regions across multiple pathological categories
-              </p>
-            </div>
-            
-            {CATEGORIES.map((category) => {
-              const categoryPredictions = getPredictionsByCategory(category.id);
-              
-              return (
-                <div key={category.id} className="animate-in slide-in-from-bottom-4 duration-700">
-                  <div className="mb-8 p-6 bg-gradient-to-r from-card to-card/50 rounded-xl border shadow-card">
-                    <div className="flex items-center gap-4 mb-2">
-                      <div className="w-3 h-3 rounded-full bg-gradient-hematoxylin" />
-                      <h3 className="text-2xl font-bold text-primary">
-                        {category.title}
-                      </h3>
-                      <span className={cn(
-                        "ml-auto px-3 py-1 rounded-full text-sm font-medium",
-                        categoryPredictions.length > 0 
-                          ? "bg-primary/10 text-primary" 
-                          : "bg-muted/50 text-muted-foreground"
-                      )}>
-                        {categoryPredictions.length > 0 
-                          ? `${categoryPredictions.length} regions detected`
-                          : "No regions detected"
-                        }
-                      </span>
-                    </div>
-                    <p className="text-muted-foreground text-lg ml-7">
-                      {category.description}
-                    </p>
-                  </div>
-                  
-                  {categoryPredictions.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                      {categoryPredictions.map((prediction, index) => (
-                        <PredictionCard
-                          key={`${prediction.category}-${index}`}
-                          imageUrl={prediction.imageUrl}
-                          fileName={prediction.fileName}
-                          confidence={prediction.confidence}
-                          className="animate-in scale-in duration-500 hover-scale cursor-pointer"
-                          style={{ animationDelay: `${index * 100}ms` }}
-                          onClick={() => handlePredictionClick(prediction)}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 px-6 bg-muted/30 rounded-xl border-2 border-dashed border-muted">
-                      <div className="text-muted-foreground text-lg">
-                        No tissue regions classified in this category
-                      </div>
-                      <div className="text-muted-foreground/70 text-sm mt-2">
-                        The AI model did not detect any {category.title.toLowerCase()} patterns in the analyzed tissue samples
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+        {/* Main Control Panel */}
+        <div className="max-w-4xl mx-auto space-y-8">
+          {/* Stepper */}
+          <div className="flex justify-center">
+            <AnalysisStepper currentStep={currentStep} steps={STEPS} />
           </div>
-        )}
+
+          {/* Compact Control Panel */}
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Upload Panel */}
+            <div className="p-6 bg-card border rounded-xl shadow-sm">
+              <div className="text-center space-y-4">
+                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-xl flex items-center justify-center">
+                  <Upload className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Load WSI Files</h3>
+                  <p className="text-muted-foreground text-sm">Upload whole slide images</p>
+                </div>
+                <Button 
+                  onClick={() => setShowUploadDialog(true)}
+                  variant="outline"
+                  className="w-full"
+                >
+                  {uploadedFiles.length > 0 ? `${uploadedFiles.length} Files Loaded` : 'Select Files'}
+                </Button>
+              </div>
+            </div>
+
+            {/* Analysis Panel */}
+            <div className="p-6 bg-card border rounded-xl shadow-sm">
+              <div className="text-center space-y-4">
+                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-xl flex items-center justify-center">
+                  <Microscope className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">AI Analysis</h3>
+                  <p className="text-muted-foreground text-sm">Process tissue samples</p>
+                </div>
+                {showFilterButton ? (
+                  <Button 
+                    onClick={startAnalysis}
+                    variant="analysis"
+                    className="w-full"
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? 'Processing...' : 'Start Analysis'}
+                  </Button>
+                ) : (
+                  <Button variant="outline" className="w-full" disabled>
+                    Load Files First
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Results Panel */}
+            <div className="p-6 bg-card border rounded-xl shadow-sm">
+              <div className="text-center space-y-4">
+                <div className="w-12 h-12 mx-auto bg-primary/10 rounded-xl flex items-center justify-center">
+                  <Grid3X3 className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Results</h3>
+                  <p className="text-muted-foreground text-sm">View classifications</p>
+                </div>
+                {showPredictions ? (
+                  <Button 
+                    onClick={() => setShowResultsDialog(true)}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    View Results ({predictions.length})
+                  </Button>
+                ) : (
+                  <Button variant="outline" className="w-full" disabled>
+                    No Results Yet
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Compact Progress and Log Area */}
+          {(showProgress || logMessages.length > 1) && (
+            <div className="bg-card border rounded-xl p-6 space-y-4">
+              {showProgress && (
+                <AnalysisProgress progress={progress} isVisible={showProgress} />
+              )}
+              
+              <div className="flex justify-between items-center">
+                <h3 className="font-semibold">Analysis Log</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowLogDialog(true)}
+                  className="text-muted-foreground"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  View Full Log
+                </Button>
+              </div>
+              
+              {/* Show last 3 log messages */}
+              <div className="space-y-2 max-h-32 overflow-hidden">
+                {logMessages.slice(-3).map((message, index) => (
+                  <div key={index} className="text-sm p-2 bg-muted/50 rounded">
+                    <span className="text-muted-foreground text-xs">
+                      {message.timestamp.toLocaleTimeString()}
+                    </span>
+                    <span className="ml-2">{message.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          {(currentStep >= 0 || showPredictions) && (
+            <div className="flex justify-center">
+              <Button 
+                onClick={handleRestart}
+                variant="outline"
+                size="lg"
+                className="px-8 py-4"
+              >
+                Restart Analysis
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Upload Dialog */}
+        <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3">
+                <Upload className="w-6 h-6 text-primary" />
+                Upload Whole Slide Images
+              </DialogTitle>
+            </DialogHeader>
+            <div className="mt-4">
+              <FileUploadArea onFileSelect={handleFileSelect} />
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Results Dialog */}
+        <Dialog open={showResultsDialog} onOpenChange={setShowResultsDialog}>
+          <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3">
+                <Grid3X3 className="w-6 h-6 text-primary" />
+                Tissue Classification Results
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="mt-4 overflow-y-auto max-h-[70vh] space-y-8">
+              {CATEGORIES.map((category) => {
+                const categoryPredictions = getPredictionsByCategory(category.id);
+                
+                return (
+                  <div key={category.id}>
+                    <div className="mb-4 p-4 bg-gradient-to-r from-card to-card/50 rounded-xl border">
+                      <div className="flex items-center gap-4 mb-2">
+                        <div className="w-3 h-3 rounded-full bg-gradient-hematoxylin" />
+                        <h3 className="text-xl font-bold text-primary">
+                          {category.title}
+                        </h3>
+                        <span className={cn(
+                          "ml-auto px-3 py-1 rounded-full text-sm font-medium",
+                          categoryPredictions.length > 0 
+                            ? "bg-primary/10 text-primary" 
+                            : "bg-muted/50 text-muted-foreground"
+                        )}>
+                          {categoryPredictions.length > 0 
+                            ? `${categoryPredictions.length} regions detected`
+                            : "No regions detected"
+                          }
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground ml-7">
+                        {category.description}
+                      </p>
+                    </div>
+                    
+                    {categoryPredictions.length > 0 ? (
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                        {categoryPredictions.map((prediction, index) => (
+                          <PredictionCard
+                            key={`${prediction.category}-${index}`}
+                            imageUrl={prediction.imageUrl}
+                            fileName={prediction.fileName}
+                            confidence={prediction.confidence}
+                            className="cursor-pointer hover-scale"
+                            onClick={() => handlePredictionClick(prediction)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 px-6 bg-muted/30 rounded-xl border-2 border-dashed border-muted">
+                        <div className="text-muted-foreground">
+                          No tissue regions classified in this category
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Log Dialog */}
+        <Dialog open={showLogDialog} onOpenChange={setShowLogDialog}>
+          <DialogContent className="max-w-4xl max-h-[90vh]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3">
+                <FileText className="w-6 h-6 text-primary" />
+                Full Analysis Log
+              </DialogTitle>
+            </DialogHeader>
+            <div className="mt-4 max-h-[70vh] overflow-y-auto">
+              <AnalysisLog messages={logMessages} isProcessing={isProcessing} />
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Prediction Detail Modal */}
         <Dialog open={!!selectedPrediction} onOpenChange={() => setSelectedPrediction(null)}>
