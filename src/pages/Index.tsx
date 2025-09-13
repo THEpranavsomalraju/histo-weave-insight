@@ -5,7 +5,7 @@ import { FileUploadArea } from "@/components/FileUploadArea";
 import { AnalysisProgress } from "@/components/AnalysisProgress";
 import { AnalysisLog } from "@/components/AnalysisLog";
 import { PredictionCard } from "@/components/PredictionCard";
-import { Microscope, Upload, FileText, ZoomIn, Activity, Grid3X3 } from "lucide-react";
+import { Microscope, Upload, FileText, ZoomIn, Activity, Grid3X3, FileImage } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -320,13 +320,66 @@ const Index = () => {
         <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-3">
+              <DialogTitle className="flex items-center gap-3 text-xl">
                 <Upload className="w-6 h-6 text-primary" />
                 Upload Whole Slide Images
               </DialogTitle>
             </DialogHeader>
-            <div className="mt-4">
-              <FileUploadArea onFileSelect={handleFileSelect} />
+            <div className="mt-6 p-8">
+              <div className="flex flex-col items-center gap-6 text-center">
+                <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center">
+                  <Upload className="w-8 h-8 text-primary-foreground" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold text-foreground mb-2">
+                    Upload Whole Slide Images
+                  </h3>
+                  <div className="text-muted-foreground flex items-center justify-center gap-2">
+                    <FileImage className="w-4 h-4" />
+                    Click or drag WSI files (PNG, JPEG, TIFF, SVS, NDPI)
+                  </div>
+                </div>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/tiff,.svs,.ndpi"
+                  multiple
+                  className="hidden"
+                  id="modalFileInput"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      handleFileSelect(e.target.files);
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="modalFileInput"
+                  className="w-full border-2 border-dashed border-primary/30 rounded-xl p-12 cursor-pointer transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 bg-muted/20"
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.add('border-primary/70', 'bg-primary/10');
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.remove('border-primary/70', 'bg-primary/10');
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.remove('border-primary/70', 'bg-primary/10');
+                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                      handleFileSelect(e.dataTransfer.files);
+                    }
+                  }}
+                >
+                  <div className="text-center">
+                    <div className="text-lg font-medium text-foreground mb-2">
+                      Drop files here or click to browse
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Supports PNG, JPEG, TIFF, SVS, NDPI formats
+                    </div>
+                  </div>
+                </label>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
